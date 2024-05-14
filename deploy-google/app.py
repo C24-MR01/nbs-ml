@@ -3,7 +3,7 @@ import numpy as np
 import tensorflow as tf
 from flask import Flask, request
 import pickle
-from cb_recommendation import get_cb_recommendations
+
 
 # ================FUNCTION===================
 
