@@ -1,7 +1,6 @@
 import pandas as pd
 import numpy as np
 import seaborn as sns
-import scipy.stats as scp
 import plotly.express as px
 import matplotlib.pyplot as plt
 from numpy.polynomial.polynomial import polyfit
@@ -23,18 +22,23 @@ from sklearn.metrics.pairwise import cosine_similarity
 from sklearn.feature_extraction.text import CountVectorizer
 from collections import Counter
 from numpy import where
+import os
 
-data_path = './data'
-df_movies = pd.read_csv(f"{data_path}/tmdb_5000_movies.csv")
-df_movies.head(5)
-df_credits = pd.read_csv(f"{data_path}/tmdb_5000_credits.csv")
-df_credits.head(4)
+# Get the current directory of the script
+current_dir = os.path.dirname(os.path.abspath(__file__))
+# Navigate one directory up to remove 'deploy-google'
+parent_dir = os.path.dirname(current_dir)
+# Path to the data directory
+data_path = os.path.join(parent_dir, 'data')
+
+# Read the CSV files
+df_movies = pd.read_csv(os.path.join(data_path, 'tmdb_5000_movies.csv'))
+df_credits = pd.read_csv(os.path.join(data_path, 'tmdb_5000_credits.csv'))
 
 total_rows, total_attributes = df_movies.shape
 
 df_credits.columns = ['id','tittle','cast','crew']
 movies= df_movies.merge(df_credits,on='id')
-movies.head(5)
 
 movies['overview'].head(5)
 
@@ -56,7 +60,10 @@ cosine_sim = linear_kernel(tfidf_matrix, tfidf_matrix)
 indices = pd.Series(movies.index, index=movies['title']).drop_duplicates()
 
 
-def get_recommendations(title, cosine_sim=cosine_sim):
+def get_recommendations(movie_id, cosine_sim=cosine_sim):
+    if int(movie_id) not in movies['id'].unique():
+        return "Movie ID not found in the dataset."
+    title = movies.loc[movies['id'] == int(movie_id), 'title'].iloc[0] 
     idx = indices[title]
 
     sim_scores = list(enumerate(cosine_sim[idx]))
@@ -69,4 +76,3 @@ def get_recommendations(title, cosine_sim=cosine_sim):
 
     return movies['title'].iloc[movie_indices]
 
-print(get_recommendations('Batman v Superman: Dawn of Justice'))

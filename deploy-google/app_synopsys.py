@@ -8,12 +8,12 @@ app = Flask(__name__)
 # Define a route for recommendation
 @app.route('/recommend', methods=['GET'])
 def recommend():
-    title = request.args.get('title')
+    movie_id = request.args.get('id')
 
-    if not title:
-        return jsonify({'error': 'Title parameter is required'}), 400
+    if not id:
+        return jsonify({'error': 'ID parameter is required'}), 400
 
-    recommendations = get_recommendations(title)
+    recommendations = get_recommendations((movie_id))
     return jsonify({'recommendations': recommendations.tolist()})
 
 if __name__ == '__main__':
