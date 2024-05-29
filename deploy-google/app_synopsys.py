@@ -6,7 +6,7 @@ from utils import get_recommendations
 app = Flask(__name__)
 
 # Define a route for recommendation
-@app.route('/recommend', methods=['GET'])
+@app.route('/recommend-synopsys', methods=['GET'])
 def recommend():
     movie_id = request.args.get('id')
 
