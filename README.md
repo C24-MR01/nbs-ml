@@ -6,7 +6,7 @@
 2. type command "pip install-r requirements.txt" ( make sure you're in root folder of nbs-ml)
 
    ```
-   pip install-r requirements.txt
+   pip install -r requirements.txt
    ```
 3. route to folder deploy-google, type below code in your terminal/cmd
 
