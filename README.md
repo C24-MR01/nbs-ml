@@ -13,7 +13,7 @@
    ```
    cd deploy-google/
    ```
-4. Run the automatic script to initialize the app, type below code in your terminal
+4. Run the automatic script to initialize the app, type below code in your terminal/cmd
 
    ```
    # For windows:
@@ -24,7 +24,7 @@
    # For mac:
    chmod +x set_app_synopsys.sh
    ```
-5. run the website by your terminal/cmd. "type below code in your terminal
+5. run the website by your terminal/cmd. type below code in your terminal/cmd
 
    ```
    python app_synopsys.py
