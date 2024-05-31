@@ -23,7 +23,7 @@ from sklearn.feature_extraction.text import CountVectorizer
 from collections import Counter
 from numpy import where
 import os
-
+import json
 # Get the current directory of the script
 current_dir = os.path.dirname(os.path.abspath(__file__))
 # Navigate one directory up to remove 'deploy-google'
@@ -58,6 +58,58 @@ from sklearn.metrics.pairwise import linear_kernel
 cosine_sim = linear_kernel(tfidf_matrix, tfidf_matrix)
 
 indices = pd.Series(movies.index, index=movies['title']).drop_duplicates()
+
+# ------------------------------------------------------------
+def get_director(crew):
+    # Mengurai string JSON menjadi list of dictionaries
+    try:
+        crew_list = json.loads(crew)
+    except (TypeError, ValueError):
+        return None
+    
+    for i in crew_list:
+        if i['job'] == 'Director':
+            return i['name']
+    return None
+
+def get_list(x):
+    if isinstance(x, list):
+        names = [i['name'] for i in x]
+        if len(names) > 3:
+            names = names[:3]
+        return names
+    return []
+
+movies['director'] = movies['crew'].apply(get_director)
+features = ['cast', 'keywords', 'genres']
+for feature in features:
+    movies[feature] = movies[feature].apply(get_list)
+    
+#clean data
+movies = movies.drop(columns=['crew'])
+def clean_data(x):
+    if isinstance(x, list):
+        return [str.lower(i.replace(" ", "")) for i in x]
+    else:
+        if isinstance(x, str):
+            return str.lower(x.replace(" ", ""))
+        else:
+            return ''
+        
+#apply clean data
+features = ['cast', 'keywords', 'director', 'genres']
+for feature in features:
+    movies[feature] = movies[feature].apply(clean_data)
+    
+def create_soup(x):
+    return ' '.join(x['keywords']) + ' ' + ' '.join(x['cast']) + ' ' + x['director'] + ' ' + ' '.join(x['genres'])
+
+movies['soup'] = movies.apply(create_soup, axis=1)
+
+count = CountVectorizer(stop_words='english')
+count_matrix = count.fit_transform(movies['soup'])
+
+cosine_sim2 = cosine_similarity(count_matrix, count_matrix)
 
 
 def get_recommendations(movie_id, cosine_sim=cosine_sim):
