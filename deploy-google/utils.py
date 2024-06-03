@@ -126,5 +126,5 @@ def get_recommendations(movie_id, cosine_sim=cosine_sim):
 
     movie_indices = [i[0] for i in sim_scores]
 
-    return movies['title'].iloc[movie_indices]
+    return movies['id'].iloc[movie_indices]
 
