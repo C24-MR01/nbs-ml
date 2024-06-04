@@ -27,6 +27,6 @@
 5. run the website by your terminal/cmd. type below code in your terminal/cmd
 
    ```
-   python app_synopsys.py
+   python app.py
    ```
 6. open your browser and enter "http://127.0.0.1:5000/recommend-synopsys?id=100". **The id value is replaceable.**
