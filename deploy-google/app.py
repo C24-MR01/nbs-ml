@@ -1,7 +1,9 @@
 # app.py
 
+import json
+
 from flask import Flask, request, jsonify
-from utils import get_recommendations, cosine_sim2
+from utils import get_recommendations, cosine_sim2, get_collab_recommendations
 
 app = Flask(__name__)
 
@@ -34,6 +36,16 @@ def recommend_metadata():
         "rec_5": rec_5,
     }
     return summary_data, 201
+
+@app.route("/recommendation-collab", methods=["GET"])
+def recommend_collaboration():
+    movie_id = request.args.get('id')
+
+    if not id:
+        return jsonify({'error': 'ID parameter is required'}), 400
+    
+    recommendations = get_collab_recommendations((movie_id))
+    return json.dumps({'recommendations': recommendations})
     
 if __name__ == '__main__':
     app.run(debug=True)

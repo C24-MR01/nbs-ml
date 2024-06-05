@@ -1,2 +1,2 @@
-set FLASK_APP=app_synopsys.py
-export FLASK_APP=app_synopsys.py
+set FLASK_APP=app.py
+export FLASK_APP=app.py
