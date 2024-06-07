@@ -12,27 +12,40 @@ from tensorflow import keras
 from keras import layers
 from keras.utils import register_keras_serializable
 from tensorflow.keras.utils import get_custom_objects
+import urllib.request
 
-# Get the current directory of the script
-current_dir = os.path.dirname(os.path.abspath(__file__))
-# Navigate one directory up to remove 'deploy-google'
-parent_dir = os.path.dirname(current_dir)
-# Path to the data directory
-data_path = os.path.join(parent_dir, 'data')
+def get_dataset():
+    # Get the current directory of the scrip
 
-# Read the CSV files
-df_movies = pd.read_csv(os.path.join(data_path, 'tmdb_5000_movies.csv'))
-df_credits = pd.read_csv(os.path.join(data_path, 'tmdb_5000_credits.csv'))
+    data_url_1 = 'https://drive.usercontent.google.com/download?id=1rACBSh5FWqP5S_xMn3Ty382BSjGZC6U0&export=download&authuser=0&confirm=t&uuid=ee5921d6-dc36-4593-8662-f5e7490f590f&at=APZUnTXz447GE_ox2yw3NvJM1NLN%3A1717769617938'
+    # Get the current working directory
+    # Get the current working directory
+    current_dir = os.getcwd()
 
-total_rows, total_attributes = df_movies.shape
+    # Get the parent directory of the current working directory
+    parent_dir = os.path.dirname(current_dir)
+    print("Parent Directory:", parent_dir)
 
-df_credits.columns = ['id','tittle','cast','crew']
-movies= df_movies.merge(df_credits,on='id')
+    data_path = os.path.join(parent_dir, 'data')
+    print("Data Path:", data_path)
 
-movies['overview'].head(5)
+    # Create the target directory if it doesn't exist
+    os.makedirs(data_path, exist_ok=True)
 
-movies = movies[['id','title','overview','genres','keywords','cast','crew']]
-movies.head(5)
+    # Define the full path for the downloaded file
+    target_file_path = os.path.join(data_path, '10000-movie.csv')
+
+    if not os.path.exists(target_file_path):
+        # Download the file to the target directory
+        urllib.request.urlretrieve(data_url_1, target_file_path)
+        print(f'File downloaded and saved to {target_file_path}')
+    else:
+        print(f'File already exists at {target_file_path}, skipping download.')
+
+get_dataset()
+movies = pd.read_csv("https://drive.usercontent.google.com/download?id=1rACBSh5FWqP5S_xMn3Ty382BSjGZC6U0&export=download&authuser=0&confirm=t&uuid=ee5921d6-dc36-4593-8662-f5e7490f590f&at=APZUnTXz447GE_ox2yw3NvJM1NLN%3A1717769617938")
+movies = movies.iloc[:, 0:7]
+movies = movies.dropna(subset=['cast', 'crew'])
 
 from sklearn.feature_extraction.text import TfidfVectorizer
 
@@ -46,8 +59,7 @@ from sklearn.metrics.pairwise import linear_kernel
 # Compute the cosine similarity matrix
 cosine_sim = linear_kernel(tfidf_matrix, tfidf_matrix)
 
-indices = pd.Series(movies.index, index=movies['title']).drop_duplicates()
-
+indices = pd.Series(movies.index, index=movies['id'])
 # ------------------------------------------------------------
 def get_director(crew):
     # Mengurai string JSON menjadi list of dictionaries
@@ -102,20 +114,38 @@ cosine_sim2 = cosine_similarity(count_matrix, count_matrix)
 
 
 def get_recommendations(movie_id, cosine_sim=cosine_sim):
-    if int(movie_id) not in movies['id'].unique():
+    if str(movie_id) not in movies['id'].unique():
         return "Movie ID not found in the dataset."
-    title = movies.loc[movies['id'] == int(movie_id), 'title'].iloc[0] 
-    idx = indices[title]
+    
+    id_to_find = movie_id
+    title = movies.loc[movies['id'] == id_to_find, 'title'].values[0]
 
-    sim_scores = list(enumerate(cosine_sim[idx]))
+    # Get indices corresponding to the title
+    idx = indices[movie_id]
+    
+    # Convert idx to a list if it's not already
+    if not isinstance(idx, list):
+        idx = [idx]
 
+    sim_scores = []
+    for index in idx:
+        # Retrieve cosine similarities for the current index
+        cosine_sims = cosine_sim[index]
+        
+        # Extend sim_scores with the enumerated cosine similarities
+        sim_scores.extend(list(enumerate(cosine_sims)))
+
+    # Sort the sim_scores list based on similarity scores
     sim_scores = sorted(sim_scores, key=lambda x: x[1], reverse=True)
 
+    # Retrieve top 5 similar movies
     sim_scores = sim_scores[1:6]
 
+    # Extract movie indices from sim_scores
     movie_indices = [i[0] for i in sim_scores]
 
     return movies['id'].iloc[movie_indices]
+
 
 # ============Collaborative===============
 # ================CLASS===================
