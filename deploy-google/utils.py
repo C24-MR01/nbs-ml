@@ -60,7 +60,11 @@ from sklearn.metrics.pairwise import linear_kernel
 cosine_sim = linear_kernel(tfidf_matrix, tfidf_matrix)
 
 indices = pd.Series(movies.index, index=movies['id'])
-# ------------------------------------------------------------
+# ------------------------------------------------------------ CONTENT BASED BY GENRE
+from ast import literal_eval
+features = ['cast', 'crew', 'keywords', 'genres']
+for feature in features:
+    movies[feature] = movies[feature].apply(literal_eval)
 def get_director(crew):
     # Mengurai string JSON menjadi list of dictionaries
     try:
@@ -106,6 +110,7 @@ def create_soup(x):
     return ' '.join(x['keywords']) + ' ' + ' '.join(x['cast']) + ' ' + x['director'] + ' ' + ' '.join(x['genres'])
 
 movies['soup'] = movies.apply(create_soup, axis=1)
+print(movies['soup'])
 
 count = CountVectorizer(stop_words='english')
 count_matrix = count.fit_transform(movies['soup'])
