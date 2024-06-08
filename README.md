@@ -1,6 +1,6 @@
 # nbs-ml
 
-***How to use deployed app_synopsys.py***
+***How to use deployed app.py***
 
 1. Checkout to branch "main"
 2. type command "pip install-r requirements.txt" ( make sure you're in root folder of nbs-ml)
