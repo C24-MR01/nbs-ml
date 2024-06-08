@@ -13,16 +13,11 @@
    ```
    cd deploy-google/
    ```
-4. Run the automatic script to initialize the app, type below code in your terminal/cmd
+4. Set the flask app  to initialize the app, type below code in your terminal/cmd
 
    ```
-   # For windows:
-   set_app_synopsys.bat
-   ```
-
-   ```
-   # For mac:
-   chmod +x set_app_synopsys.sh
+   # For windows or mac:
+   set FLASK_APP=app.py
    ```
 5. run the website by your terminal/cmd. type below code in your terminal/cmd
 
