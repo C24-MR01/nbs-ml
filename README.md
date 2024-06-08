@@ -25,3 +25,4 @@
    python app.py
    ```
 6. open your browser and enter "http://127.0.0.1:5000/recommend-synopsys?id=100". **The id value is replaceable.**
+7. You can try other endpoint "http://127.0.0.1:5000/recommend-collab?id=2", "http://127.0.0.1:5000/recommend-metadata?id=2"
