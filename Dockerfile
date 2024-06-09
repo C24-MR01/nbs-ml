@@ -1,6 +1,9 @@
 FROM python:3.11
 
 WORKDIR /app
+
+ENV HOST 0.0.0.0
+
 COPY . ./
 
 COPY requirements.txt requirements.txt
