@@ -126,7 +126,6 @@ tensorboard-data-server==0.7.2
 tensorflow==2.16.1
 tensorflow-datasets==4.9.5
 tensorflow-io-gcs-filesystem==0.37.0
-tensorflow-macos==2.16.1
 tensorflow-metadata==1.15.0
 tensorflow-recommenders==0.7.3
 termcolor==2.4.0
