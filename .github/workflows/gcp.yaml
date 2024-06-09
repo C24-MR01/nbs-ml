@@ -48,3 +48,4 @@ jobs:
           --platform managed \
           --region asia-southeast2 \
           --allow-unauthenticated \
+          --memory 1Gi 
