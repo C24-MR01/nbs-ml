@@ -119,38 +119,37 @@ cosine_sim2 = cosine_similarity(count_matrix, count_matrix)
 
 
 def get_recommendations(movie_id, cosine_sim=cosine_sim):
-    if str(movie_id) not in movies['id'].unique():
-        return "Movie ID not found in the dataset."
-    
-    id_to_find = movie_id
-    title = movies.loc[movies['id'] == id_to_find, 'title'].values[0]
+    try:
+        id_to_find = movie_id
+        title = movies.loc[movies['id'] == id_to_find, 'title'].values[0]
 
-    # Get indices corresponding to the title
-    idx = indices[movie_id]
-    
-    # Convert idx to a list if it's not already
-    if not isinstance(idx, list):
-        idx = [idx]
-
-    sim_scores = []
-    for index in idx:
-        # Retrieve cosine similarities for the current index
-        cosine_sims = cosine_sim[index]
+        # Get indices corresponding to the title
+        idx = indices[movie_id]
         
-        # Extend sim_scores with the enumerated cosine similarities
+        # Convert idx to a list if it's not already
+        if not isinstance(idx, list):
+            idx = [idx]
+
+        sim_scores = []
+        for index in idx:
+            # Retrieve cosine similarities for the current index
+            cosine_sims = cosine_sim[index]
+            
+            # Extend sim_scores with the enumerated cosine similarities
         sim_scores.extend(list(enumerate(cosine_sims)))
 
-    # Sort the sim_scores list based on similarity scores
-    sim_scores = sorted(sim_scores, key=lambda x: x[1], reverse=True)
+        # Sort the sim_scores list based on similarity scores
+        sim_scores = sorted(sim_scores, key=lambda x: x[1], reverse=True)
 
-    # Retrieve top 5 similar movies
-    sim_scores = sim_scores[1:6]
+        # Retrieve top 5 similar movies
+        sim_scores = sim_scores[1:6]
+        # Extract movie indices from sim_scores
+        movie_indices = [i[0] for i in sim_scores]
 
-    # Extract movie indices from sim_scores
-    movie_indices = [i[0] for i in sim_scores]
-
-    return movies['id'].iloc[movie_indices]
-
+        return movies['id'].iloc[movie_indices]
+    except IndexError as e:
+    # Handle the error
+        return("Movie ID is not found in dataset")
 
 # ============Collaborative===============
 # ================CLASS===================

@@ -16,6 +16,8 @@ def recommend():
         return jsonify({'error': 'ID parameter is required'}), 400
 
     recommendations = get_recommendations((movie_id))
+    if type(recommendations) == str:
+        return recommendations
     return jsonify({'recommendations': recommendations.tolist()})
 
 
