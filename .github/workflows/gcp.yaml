@@ -55,5 +55,5 @@ jobs:
           --platform managed \
           --region asia-southeast2 \
           --allow-unauthenticated \
-          --memory 4Gi \
+          --memory 8Gi \
           --port 5000
