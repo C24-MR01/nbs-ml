@@ -10,10 +10,39 @@ import tensorflow as tf
 import pickle
 from tensorflow import keras
 from keras import layers
-from keras.utils import register_keras_serializable
-from tensorflow.keras.utils import get_custom_objects
 import urllib.request
 
+import pandas as pd
+import numpy as np
+import torch
+import torch.nn as nn
+from torch.utils.data import Dataset, DataLoader
+import pytorch_lightning as pl
+import pickle
+import zipfile
+
+def get_model():
+    """
+    https://drive.usercontent.google.com/download?id=1tKJNWOa5Nqskdm-YAo-X1avsoDOx8EW7&export=download&authuser=0&confirm=t&uuid=677a441e-52cf-4042-89c0-adc4342a3a57&at=APZUnTXApeyO239jIVEinBEsWZqZ%3A1718211135110
+    """
+    model_url = 'https://drive.usercontent.google.com/download?id=1tKJNWOa5Nqskdm-YAo-X1avsoDOx8EW7&export=download&authuser=0&confirm=t&uuid=677a441e-52cf-4042-89c0-adc4342a3a57&at=APZUnTXApeyO239jIVEinBEsWZqZ%3A1718211135110'
+    current_dir = os.getcwd()
+    model_path = os.path.join(current_dir)
+    print("Downloading model to {}".format(model_path))
+    os.makedirs(model_path, exist_ok=True)
+    # Define the full path for the downloaded file
+    target_file_path = os.path.join(model_path, 'model.zip')
+    if not os.path.exists(target_file_path):
+        urllib.request.urlretrieve(model_url, target_file_path)
+        print(f'File downloaded and saved to {target_file_path}')
+        # Unzip the model.zip
+        with zipfile.ZipFile(target_file_path, 'r') as zip_ref:
+            zip_ref.extractall(model_path)
+        print(f'File unzipped to {model_path}')
+    else:
+        print(f'File already exists at {target_file_path}, skipping download.')
+
+get_model()
 def get_dataset():
     # Get the current directory of the scrip
 
@@ -24,11 +53,9 @@ def get_dataset():
 
     # Get the parent directory of the current working directory
     parent_dir = os.path.dirname(current_dir)
-    print("Parent Directory:", parent_dir)
 
     data_path = os.path.join(parent_dir, 'data')
-    print("Data Path:", data_path)
-
+    print("Downloading movie dataset to {}".format(data_path))
     # Create the target directory if it doesn't exist
     os.makedirs(data_path, exist_ok=True)
 
@@ -71,7 +98,7 @@ def get_director(crew):
         crew_list = json.loads(crew)
     except (TypeError, ValueError):
         return None
-    
+
     for i in crew_list:
         if i['job'] == 'Director':
             return i['name']
@@ -89,7 +116,7 @@ movies['director'] = movies['crew'].apply(get_director)
 features = ['cast', 'keywords', 'genres']
 for feature in features:
     movies[feature] = movies[feature].apply(get_list)
-    
+
 #clean data
 movies = movies.drop(columns=['crew'])
 def clean_data(x):
@@ -100,17 +127,16 @@ def clean_data(x):
             return str.lower(x.replace(" ", ""))
         else:
             return ''
-        
+
 #apply clean data
 features = ['cast', 'keywords', 'director', 'genres']
 for feature in features:
     movies[feature] = movies[feature].apply(clean_data)
-    
+
 def create_soup(x):
     return ' '.join(x['keywords']) + ' ' + ' '.join(x['cast']) + ' ' + x['director'] + ' ' + ' '.join(x['genres'])
 
 movies['soup'] = movies.apply(create_soup, axis=1)
-print(movies['soup'])
 
 count = CountVectorizer(stop_words='english')
 count_matrix = count.fit_transform(movies['soup'])
@@ -125,7 +151,7 @@ def get_recommendations(movie_id, cosine_sim=cosine_sim):
 
         # Get indices corresponding to the title
         idx = indices[movie_id]
-        
+
         # Convert idx to a list if it's not already
         if not isinstance(idx, list):
             idx = [idx]
@@ -134,7 +160,7 @@ def get_recommendations(movie_id, cosine_sim=cosine_sim):
         for index in idx:
             # Retrieve cosine similarities for the current index
             cosine_sims = cosine_sim[index]
-            
+
             # Extend sim_scores with the enumerated cosine similarities
         sim_scores.extend(list(enumerate(cosine_sims)))
 
@@ -153,124 +179,114 @@ def get_recommendations(movie_id, cosine_sim=cosine_sim):
 
 # ============Collaborative===============
 # ================CLASS===================
-@register_keras_serializable()
-class RecommenderNet(keras.Model):
-    def __init__(self, num_users, num_movies, num_gender, num_ages, embedding_size, **kwargs):
-        super(RecommenderNet, self).__init__(**kwargs)
-        self.num_users = num_users
-        self.num_movies = num_movies
-        self.num_gender = num_gender
-        self.num_ages = num_ages
-        self.embedding_size = embedding_size
-        self.user_embedding = layers.Embedding(
-            num_users,
-            embedding_size,
-            embeddings_initializer="he_normal",
-            embeddings_regularizer=keras.regularizers.l2(1e-6),
-        )
-        self.user_bias = layers.Embedding(num_users, 1)
-        self.movie_embedding = layers.Embedding(
-            num_movies,
-            embedding_size,
-            embeddings_initializer="he_normal",
-            embeddings_regularizer=keras.regularizers.l2(1e-6),
-        )
-        self.movie_bias = layers.Embedding(num_movies, 1)
-        self.user_gender_embedding = layers.Embedding(
-            num_gender,
-            embedding_size,
-            embeddings_initializer="he_normal",
-            embeddings_regularizer=keras.regularizers.l2(1e-6),
-        )
-        self.user_gender_bias = layers.Embedding(num_gender, 1)
-        self.age_embedding = layers.Embedding(
-            num_ages,
-            embedding_size,
-            embeddings_initializer="he_normal",
-            embeddings_regularizer=keras.regularizers.l2(1e-6),
-        )
-        self.age_bias = layers.Embedding(num_ages, 1)
-        self.dense1 = layers.Dense(32, activation='relu')
-        self.dense2 = layers.Dense(64, activation='relu')
-        self.dense3 = layers.Dense(128, activation='relu')
-        self.dropout = layers.Dropout(0.5)
-        self.output_layer = layers.Dense(1, activation='sigmoid')
+class MovieLensTrainDataset(Dataset):
+    """MovieLens PyTorch Dataset for Training"""
 
-    def call(self, inputs):
-        user_vector = self.user_embedding(inputs[:, 0])
-        user_bias = self.user_bias(inputs[:, 0])
-        movie_vector = self.movie_embedding(inputs[:, 1])
-        movie_bias = self.movie_bias(inputs[:, 1])
-        user_gender_vector = self.user_gender_embedding(inputs[:, 2])
-        user_gender_bias = self.user_gender_bias(inputs[:, 2])
-        age_vector = self.age_embedding(inputs[:, 3])
-        age_bias = self.age_bias(inputs[:, 3])
-        dot_user_movie = tf.reduce_sum(user_vector * movie_vector, axis=1, keepdims=True)
-        dot_user_movie_gender = dot_user_movie + tf.reduce_sum(user_vector * user_gender_vector, axis=1, keepdims=True)
-        dot_user_movie_gender = dot_user_movie_gender + tf.reduce_sum(movie_vector * user_gender_vector, axis=1, keepdims=True)
-        dot_user_movie_gender_age = dot_user_movie_gender + tf.reduce_sum(movie_vector * age_vector, axis=1, keepdims=True)
-        dot_user_movie_gender_age = dot_user_movie_gender_age + tf.reduce_sum(user_vector * age_vector, axis=1, keepdims=True)
-        dot_user_movie_gender_age = dot_user_movie_gender_age + tf.reduce_sum(user_gender_vector * age_vector, axis=1, keepdims=True)
-        x = dot_user_movie_gender_age + user_bias + movie_bias + user_gender_bias +age_bias
-        x = self.dense1(x)
-        x = self.dropout(x)
-        x = self.dense2(x)
-        x = self.dropout(x)
-        x = self.dense3(x)
-        x = self.dropout(x)
-        x = self.output_layer(x)
-        return x
+    def __init__(self, ratings, all_movieIds):
+        self.users, self.items, self.labels = self.get_dataset(ratings, all_movieIds)
 
-    def get_config(self):
-        config = super(RecommenderNet, self).get_config()
-        config.update({
-            'num_users': self.num_users,
-            'num_movies': self.num_movies,
-            'num_gender': self.num_gender,
-            'num_ages': self.num_ages,
-            'embedding_size': self.embedding_size
-        })
-        return config
+    def __len__(self):
+        return len(self.users)
 
-    @classmethod
-    def from_config(cls, config):
-        return cls(**config)
+    def __getitem__(self, idx):
+        return self.users[idx], self.items[idx], self.labels[idx]
 
-get_custom_objects().update({'RecommenderNet': RecommenderNet})
+    def get_dataset(self, ratings, all_movieIds):
+        users, items, labels = [], [], []
+        user_item_set = set(zip(ratings['user'], ratings['movieId']))
+        num_negatives = 4
+        for u, i in user_item_set:
+            users.append(u)
+            items.append(i)
+            labels.append(1)
+            for _ in range(num_negatives):
+                negative_item = np.random.choice(all_movieIds)
+                while (u, negative_item) in user_item_set:
+                    negative_item = np.random.choice(all_movieIds)
+                users.append(u)
+                items.append(negative_item)
+                labels.append(0)
+        return torch.tensor(users), torch.tensor(items), torch.tensor(labels)
 
-# ================LOAD MODEL=========================
-folder = './model/'
 
-df = pickle.load(open(folder + 'df.pkl', 'rb'))
-user_id_encoded = pickle.load(open(folder + 'user_id_encoded.pkl', 'rb'))
-movie_id_encoded = pickle.load(open(folder + 'movie_id_encoded.pkl', 'rb'))
+class NCF(pl.LightningModule):
+    """Neural Collaborative Filtering (NCF)"""
 
-model = tf.keras.models.load_model(folder + '/model_collab.keras', custom_objects={'RecommenderNet': RecommenderNet})
+    def __init__(self, num_users, num_items, ratings, all_movieIds):
+        super().__init__()
+        self.user_embedding = nn.Embedding(num_embeddings=num_users, embedding_dim=8)
+        self.item_embedding = nn.Embedding(num_embeddings=num_items, embedding_dim=8)
+        self.fc1 = nn.Linear(in_features=16, out_features=64)
+        self.fc2 = nn.Linear(in_features=64, out_features=32)
+        self.output = nn.Linear(in_features=32, out_features=1)
+        self.ratings = ratings
+        self.all_movieIds = all_movieIds
 
-# ================FUNCTION===================
+    def forward(self, user_input, item_input):
+        user_embedded = self.user_embedding(user_input)
+        item_embedded = self.item_embedding(item_input)
+        vector = torch.cat([user_embedded, item_embedded], dim=-1)
+        vector = nn.ReLU()(self.fc1(vector))
+        vector = nn.ReLU()(self.fc2(vector))
+        pred = nn.Sigmoid()(self.output(vector))
+        return pred
+
+    def training_step(self, batch, batch_idx):
+        user_input, item_input, labels = batch
+        predicted_labels = self(user_input, item_input)
+        loss = nn.BCELoss()(predicted_labels, labels.view(-1, 1).float())
+        return loss
+
+    def configure_optimizers(self):
+        return torch.optim.Adam(self.parameters())
+
+    def train_dataloader(self):
+        return DataLoader(MovieLensTrainDataset(self.ratings, self.all_movieIds),
+                          batch_size=512, num_workers=0)
+
+
+def load_model():
+    folder = './model/'
+    ratings = pickle.load(open(folder + 'ratings_fix_df.pkl', 'rb'))
+    user_id_encoded = pickle.load(open(folder + 'user_id_encoded_fix.pkl', 'rb'))
+    movie_id_encoded = pickle.load(open(folder + 'movie_id_encoded_fix.pkl', 'rb'))
+
+    num_users = ratings['user'].max() + 1
+    num_items = ratings['movieId'].max() + 1
+
+    all_movieIds = ratings['movieId'].unique()
+    ratings['rank_latest'] = ratings.groupby(['user'])['timestamp'].rank(method='first', ascending=False)
+    train_ratings = ratings[ratings['rank_latest'] != 1]
+    train_ratings = train_ratings[['user', 'movieId', 'rating']]
+    train_ratings.loc[:, 'rating'] = 1
+
+    model = NCF(num_users, num_items, train_ratings, all_movieIds)
+    model.load_state_dict(torch.load('model/model_fix_state_dict.pth'))
+    model.eval()
+
+    return model, ratings, user_id_encoded, movie_id_encoded, all_movieIds
+
+
+model, ratings, user_id_encoded, movie_id_encoded, all_movieIds = load_model()
+
+
 def get_collab_recommendations(user_id):
     if user_id not in user_id_encoded.keys():
-        result_list = df.head(10)["movie_id"].tolist()
-        return result_list
-
-    movies_reviewed_by_user = df[df['user_id'] == user_id]
-    movie_not_reviewed = df[~df["movie_id"].isin(movies_reviewed_by_user.movie_id.values)]["movie_id"]
-    movie_not_reviewed = list(set(movie_not_reviewed).intersection(set(movie_id_encoded.keys())))
-    movie_not_reviewed = [[movie_id_encoded.get(x)] for x in movie_not_reviewed]
+        # Get the top 10 most common movieIds
+        result_list = ratings['movieId'].value_counts().head(100).index.tolist()
+        result_list = np.random.choice(result_list, 10, replace=False)
+        return [int(movie_id) for movie_id in result_list]
 
     user_encoder = user_id_encoded.get(user_id)
-    user_gender = df[df["user_id"] == user_id]["user_gender"].iloc[0]
-    user_age = df[df["user_id"] == user_id]["age_norm"].iloc[0]
-    user_movie_array = np.hstack(
-        ([[user_encoder]] * len(movie_not_reviewed), movie_not_reviewed, [[user_gender]] * len(movie_not_reviewed), [[user_age]] * len(movie_not_reviewed))
-    )
+    user_interacted_items = ratings.groupby('user')['movieId'].apply(list).to_dict()
+    interacted_items = user_interacted_items[user_encoder]
+    not_interacted_items = set(all_movieIds) - set(interacted_items)
+    selected_not_interacted = list(np.random.choice(list(not_interacted_items), 100))
+    test_items = selected_not_interacted
 
-    ratings = model.predict(user_movie_array).flatten()
-    top_ratings_indices = ratings.argsort()[-10:][::-1]
+    predicted_labels = np.squeeze(model(torch.tensor([user_encoder] * 100),
+                                        torch.tensor(test_items)).detach().numpy())
 
-    movie_encoded = {i: x for i, x in enumerate(movie_id_encoded)}
-    recommended_movie_ids = [movie_encoded.get(movie_not_reviewed[x][0]) for x in top_ratings_indices]
+    top10_items = [test_items[i] for i in np.argsort(predicted_labels)[::-1][0:10].tolist()]
 
-    recommended_movie = df[df['movie_id'].isin(recommended_movie_ids)]
-    recommended_id = recommended_movie['movie_id'].tolist()
-    return list(set(recommended_id))
+    return [int(movie_id) for movie_id in top10_items]

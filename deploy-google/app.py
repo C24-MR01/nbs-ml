@@ -41,13 +41,17 @@ def recommend_metadata():
 
 @app.route("/recommendation-collab", methods=["GET"])
 def recommend_collaboration():
-    movie_id = request.args.get('id')
+    user_id = request.args.get('id')
 
     if not id:
         return jsonify({'error': 'ID parameter is required'}), 400
     
-    recommendations = get_collab_recommendations((movie_id))
+    recommendations = get_collab_recommendations((user_id))
     return json.dumps({'recommendations': recommendations})
+    
+if __name__ == '__main__':
+    app.run(debug=True)
+
     
 if __name__ == '__main__':
     app.run(debug=True)
