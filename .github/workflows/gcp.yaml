@@ -56,4 +56,6 @@ jobs:
           --region asia-southeast2 \
           --allow-unauthenticated \
           --memory 8Gi \
-          --port 5000
+          --cpu 2 \
+          --port 5000 \
+          --max-instances 2
