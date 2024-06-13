@@ -31,7 +31,7 @@ def get_model():
     print("Downloading model to {}".format(model_path))
     os.makedirs(model_path, exist_ok=True)
     # Define the full path for the downloaded file
-    target_file_path = os.path.join(model_path, 'model.zip')
+    target_file_path = os.path.join(model_path, 'model (1).zip')
     if not os.path.exists(target_file_path):
         urllib.request.urlretrieve(model_url, target_file_path)
         print(f'File downloaded and saved to {target_file_path}')
